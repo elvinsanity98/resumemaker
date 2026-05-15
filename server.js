@@ -4,7 +4,7 @@ const puppeteer = require('puppeteer');
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -46,8 +46,8 @@ app.post('/generate-pdf', async (req, res) => {
     const html = await renderView(res.app, 'resume', { data, isPdf: true });
     console.log('[PDF] HTML rendered, length:', html.length);
 
-    browser = await puppeteer.launch({
-      headless: true,  // use classic headless for maximum Windows compatibility
+    const launchOptions = {
+      headless: true,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -57,7 +57,12 @@ app.post('/generate-pdf', async (req, res) => {
         '--disable-extensions',
         '--disable-background-networking',
       ],
-    });
+    };
+    // On Railway/cloud, use the system Chromium instead of the bundled one
+    if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+      launchOptions.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    }
+    browser = await puppeteer.launch(launchOptions);
 
     const page = await browser.newPage();
     await page.setViewport({ width: 794, height: 1123, deviceScaleFactor: 1 });
