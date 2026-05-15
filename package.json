@@ -1,0 +1,25 @@
+{
+  "name": "resumemaker",
+  "version": "1.0.0",
+  "description": "ATS-friendly resume builder for big companies",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "build:css": "tailwindcss -i ./src/input.css -o ./public/css/styles.css",
+    "watch:css": "tailwindcss -i ./src/input.css -o ./public/css/styles.css --watch"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "ejs": "^3.1.10",
+    "express": "^4.18.2",
+    "puppeteer": "^21.7.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.7",
+    "autoprefixer": "^10.4.17",
+    "nodemon": "^3.0.3",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1"
+  }
+}

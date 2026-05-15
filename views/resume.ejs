@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title><%= data.fullName || 'Resume' %></title>
+  <% if (!isPdf) { %>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <% } %>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 10.5pt; }
+    body {
+      font-family: 'Inter', 'Calibri', 'Arial', sans-serif;
+      color: #1a1a1a;
+      line-height: 1.5;
+      background: white;
+      padding: 0;
+    }
+    .page { padding: 28px 32px; max-width: 794px; margin: 0 auto; }
+
+    /* Header */
+    .header { border-bottom: 2px solid #1e1b4b; padding-bottom: 12px; margin-bottom: 14px; }
+    .header-name { font-size: 22pt; font-weight: 700; color: #1e1b4b; letter-spacing: -0.3px; line-height: 1.1; }
+    .header-title { font-size: 11pt; color: #4338ca; font-weight: 600; margin-top: 2px; margin-bottom: 8px; }
+    .header-contacts { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 9pt; color: #374151; }
+    .header-contacts span { display: flex; align-items: center; gap: 4px; }
+    .contact-icon { width: 10px; height: 10px; fill: #6366f1; flex-shrink: 0; }
+
+    /* Section */
+    .section { margin-bottom: 14px; }
+    .section-title {
+      font-size: 9.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #1e1b4b;
+      border-bottom: 1.5px solid #c7d2fe;
+      padding-bottom: 3px;
+      margin-bottom: 8px;
+    }
+
+    /* Summary */
+    .summary-text { font-size: 9.5pt; color: #374151; line-height: 1.6; }
+
+    /* Experience entry */
+    .entry { margin-bottom: 10px; }
+    .entry-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px; }
+    .entry-org { font-weight: 700; font-size: 10pt; color: #111827; }
+    .entry-dates { font-size: 8.5pt; color: #6b7280; white-space: nowrap; font-weight: 500; }
+    .entry-role { font-size: 9.5pt; font-weight: 600; color: #4338ca; margin-bottom: 4px; }
+    .entry-location { font-size: 8.5pt; color: #9ca3af; }
+    .bullets { list-style: none; padding: 0; }
+    .bullets li {
+      font-size: 9.5pt;
+      color: #374151;
+      line-height: 1.55;
+      padding-left: 14px;
+      position: relative;
+      margin-bottom: 2px;
+    }
+    .bullets li::before {
+      content: '▸';
+      position: absolute;
+      left: 0;
+      color: #6366f1;
+      font-size: 8pt;
+      top: 1px;
+    }
+
+    /* Education */
+    .edu-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .edu-school { font-weight: 700; font-size: 10pt; color: #111827; }
+    .edu-degree { font-size: 9.5pt; color: #374151; margin-top: 1px; }
+    .edu-gpa { font-size: 8.5pt; color: #6b7280; }
+
+    /* Skills */
+    .skills-grid { display: flex; flex-direction: column; gap: 5px; }
+    .skill-row { display: flex; gap: 6px; align-items: baseline; }
+    .skill-cat { font-weight: 700; font-size: 9pt; color: #1e1b4b; min-width: 130px; white-space: nowrap; }
+    .skill-vals { font-size: 9.5pt; color: #374151; }
+
+    /* Projects */
+    .project-header { display: flex; justify-content: space-between; align-items: baseline; }
+    .project-name { font-weight: 700; font-size: 10pt; color: #111827; }
+    .project-link { font-size: 8pt; color: #6366f1; }
+    .project-tech { font-size: 8.5pt; color: #4338ca; font-weight: 600; margin-bottom: 3px; }
+    .project-desc { font-size: 9.5pt; color: #374151; line-height: 1.5; }
+
+    /* Certs */
+    .cert-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .cert-name { font-size: 9.5pt; font-weight: 600; color: #111827; }
+    .cert-issuer { font-size: 9pt; color: #6b7280; }
+    .cert-date { font-size: 8.5pt; color: #9ca3af; }
+
+    /* Empty state */
+    .empty-preview {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 400px;
+      color: #d1d5db;
+      gap: 12px;
+    }
+    .empty-preview svg { width: 48px; height: 48px; }
+    .empty-preview p { font-size: 13px; }
+  </style>
+</head>
+<body>
+<% const d = data; %>
+<% const hasContent = d.fullName || d.summary || (d.experience && d.experience.length); %>
+<% if (!hasContent) { %>
+<div class="empty-preview">
+  <svg fill="none" viewBox="0 0 24 24" stroke="#e5e7eb" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+  <p>Start filling in your details to see a live preview</p>
+</div>
+<% } else { %>
+<div class="page">
+
+  <!-- ══ HEADER ══ -->
+  <div class="header">
+    <div class="header-name"><%= d.fullName || '' %></div>
+    <% if (d.jobTitle) { %><div class="header-title"><%= d.jobTitle %></div><% } %>
+    <div class="header-contacts">
+      <% if (d.email) { %>
+      <span>
+        <svg class="contact-icon" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/></svg>
+        <%= d.email %>
+      </span>
+      <% } %>
+      <% if (d.phone) { %>
+      <span>
+        <svg class="contact-icon" viewBox="0 0 20 20"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/></svg>
+        <%= d.phone %>
+      </span>
+      <% } %>
+      <% if (d.location) { %>
+      <span>
+        <svg class="contact-icon" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+        <%= d.location %>
+      </span>
+      <% } %>
+      <% if (d.linkedin) { %>
+      <span>
+        <svg class="contact-icon" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.338 16.338H13.67V12.16c0-.995-.017-2.277-1.387-2.277-1.39 0-1.601 1.086-1.601 2.207v4.248H8.014v-8.59h2.559v1.174h.037c.356-.675 1.227-1.387 2.526-1.387 2.703 0 3.203 1.778 3.203 4.092v4.711zM5.005 6.575a1.548 1.548 0 11-.003-3.096 1.548 1.548 0 01.003 3.096zm-1.337 9.763H6.34v-8.59H3.667v8.59zM17.668 1H2.328C1.595 1 1 1.581 1 2.298v15.403C1 18.418 1.595 19 2.328 19h15.34c.734 0 1.332-.582 1.332-1.299V2.298C19 1.581 18.402 1 17.668 1z" clip-rule="evenodd"/></svg>
+        <%= d.linkedin %>
+      </span>
+      <% } %>
+      <% if (d.website) { %>
+      <span>
+        <svg class="contact-icon" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        <%= d.website %>
+      </span>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- ══ SUMMARY ══ -->
+  <% if (d.summary) { %>
+  <div class="section">
+    <div class="section-title">Professional Summary</div>
+    <p class="summary-text"><%= d.summary %></p>
+  </div>
+  <% } %>
+
+  <!-- ══ EXPERIENCE ══ -->
+  <% if (d.experience && d.experience.length) { %>
+  <div class="section">
+    <div class="section-title">Work Experience</div>
+    <% d.experience.forEach(exp => { %>
+    <% if (exp.company || exp.role) { %>
+    <div class="entry">
+      <div class="entry-header">
+        <div>
+          <div class="entry-org"><%= exp.company || '' %></div>
+          <% if (exp.location) { %><div class="entry-location"><%= exp.location %></div><% } %>
+        </div>
+        <div class="entry-dates">
+          <%= exp.startDate || '' %><% if (exp.startDate || exp.endDate) { %> – <% } %><%= exp.current ? 'Present' : (exp.endDate || '') %>
+        </div>
+      </div>
+      <div class="entry-role"><%= exp.role || '' %></div>
+      <% if (exp.bullets) { %>
+      <%
+        const lines = exp.bullets.split('\n').map(l => l.replace(/^[-•▸*]\s*/, '').trim()).filter(l => l.length > 0);
+      %>
+      <% if (lines.length) { %>
+      <ul class="bullets">
+        <% lines.forEach(line => { %>
+        <li><%= line %></li>
+        <% }) %>
+      </ul>
+      <% } %>
+      <% } %>
+    </div>
+    <% } %>
+    <% }) %>
+  </div>
+  <% } %>
+
+  <!-- ══ EDUCATION ══ -->
+  <% if (d.education && d.education.length) { %>
+  <div class="section">
+    <div class="section-title">Education</div>
+    <% d.education.forEach(edu => { %>
+    <% if (edu.school || edu.degree) { %>
+    <div class="entry">
+      <div class="edu-header">
+        <div>
+          <div class="edu-school"><%= edu.school || '' %></div>
+          <div class="edu-degree">
+            <%= edu.degree || '' %><% if (edu.degree && edu.field) { %>, <% } %><%= edu.field || '' %>
+            <% if (edu.gpa) { %><span class="edu-gpa"> · GPA: <%= edu.gpa %></span><% } %>
+          </div>
+          <% if (edu.honors) { %><div class="edu-gpa"><%= edu.honors %></div><% } %>
+        </div>
+        <div class="entry-dates">
+          <%= edu.startYear || '' %><% if (edu.startYear || edu.endYear) { %> – <% } %><%= edu.endYear || '' %>
+        </div>
+      </div>
+    </div>
+    <% } %>
+    <% }) %>
+  </div>
+  <% } %>
+
+  <!-- ══ SKILLS ══ -->
+  <% if (d.skillCategories && d.skillCategories.length) { %>
+  <div class="section">
+    <div class="section-title">Skills</div>
+    <div class="skills-grid">
+      <% d.skillCategories.forEach(cat => { %>
+      <% if (cat.name && cat.skills && cat.skills.length) { %>
+      <div class="skill-row">
+        <span class="skill-cat"><%= cat.name %>:</span>
+        <span class="skill-vals"><%= cat.skills.join(' · ') %></span>
+      </div>
+      <% } %>
+      <% }) %>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- ══ PROJECTS ══ -->
+  <% if (d.projects && d.projects.length) { %>
+  <div class="section">
+    <div class="section-title">Projects</div>
+    <% d.projects.forEach(proj => { %>
+    <% if (proj.name || proj.description) { %>
+    <div class="entry">
+      <div class="project-header">
+        <span class="project-name"><%= proj.name || '' %></span>
+        <% if (proj.link) { %><span class="project-link"><%= proj.link %></span><% } %>
+      </div>
+      <% if (proj.tech) { %><div class="project-tech"><%= proj.tech %></div><% } %>
+      <% if (proj.description) { %>
+      <%
+        const plines = proj.description.split('\n').map(l => l.replace(/^[-•▸*]\s*/, '').trim()).filter(l => l.length);
+      %>
+      <% if (plines.length > 1) { %>
+      <ul class="bullets">
+        <% plines.forEach(l => { %><li><%= l %></li><% }) %>
+      </ul>
+      <% } else { %>
+      <p class="project-desc"><%= proj.description %></p>
+      <% } %>
+      <% } %>
+    </div>
+    <% } %>
+    <% }) %>
+  </div>
+  <% } %>
+
+  <!-- ══ CERTIFICATIONS ══ -->
+  <% if (d.certifications && d.certifications.length) { %>
+  <div class="section">
+    <div class="section-title">Certifications &amp; Awards</div>
+    <% d.certifications.forEach(cert => { %>
+    <% if (cert.name) { %>
+    <div class="cert-row">
+      <div>
+        <span class="cert-name"><%= cert.name %></span>
+        <% if (cert.issuer) { %> <span class="cert-issuer">· <%= cert.issuer %></span><% } %>
+      </div>
+      <% if (cert.date) { %><span class="cert-date"><%= cert.date %></span><% } %>
+    </div>
+    <% } %>
+    <% }) %>
+  </div>
+  <% } %>
+
+</div><!-- /page -->
+<% } %>
+</body>
+</html>
