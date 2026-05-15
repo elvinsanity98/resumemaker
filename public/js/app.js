@@ -90,8 +90,26 @@ function refreshPreview() {
       const frame = document.getElementById('previewFrame');
       const doc = frame.contentDocument || frame.contentWindow.document;
       doc.open(); doc.write(html); doc.close();
+      fitPreview();
     });
 }
+
+// Scale the A4 page (794px) down to fit the available width on small screens
+function fitPreview() {
+  const scroll = document.getElementById('previewScroll');
+  const sizer = document.getElementById('previewSizer');
+  const page = document.getElementById('previewPage');
+  if (!scroll || !sizer || !page) return;
+  const PAGE_W = 794, PAGE_H = 1123;
+  const available = scroll.clientWidth - 16; // account for px-2 padding
+  if (available <= 0) return; // column is hidden (display:none) — recompute when shown
+  const scale = Math.min(1, available / PAGE_W);
+  page.style.transform = `scale(${scale})`;
+  // The sizer reserves the *scaled* footprint so layout/scroll stay correct
+  sizer.style.width = (PAGE_W * scale) + 'px';
+  sizer.style.height = (PAGE_H * scale) + 'px';
+}
+window.addEventListener('resize', fitPreview);
 
 function schedulePreview() {
   clearTimeout(previewDebounce);

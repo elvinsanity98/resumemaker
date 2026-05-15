@@ -16,6 +16,7 @@
     ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
     .tab-btn.active { background: white; box-shadow: 0 1px 3px rgba(0,0,0,.08); color: #4338ca; }
     .ats-ring { transition: stroke-dashoffset 0.6s ease; }
+    #previewPage { transform-origin: top left; transition: transform 0.15s ease; }
     .skill-tag { display:inline-flex; align-items:center; gap:4px; background:#eef2ff; color:#4338ca;
                  padding:2px 10px; border-radius:99px; font-size:12px; font-weight:500; margin:2px; }
     .skill-tag button { background:none;border:none;cursor:pointer;color:#818cf8;font-size:14px;
@@ -296,9 +297,11 @@
         </button>
       </div>
     </div>
-    <div class="flex-1 overflow-auto flex justify-center items-start py-4 sm:py-6">
-      <div class="bg-white shadow-2xl" style="width:794px; min-height:1123px;">
-        <iframe id="previewFrame" class="preview-frame" style="width:794px;height:1123px;"></iframe>
+    <div id="previewScroll" class="flex-1 overflow-auto flex justify-center items-start py-4 sm:py-6 px-2">
+      <div id="previewSizer">
+        <div id="previewPage" class="bg-white shadow-2xl" style="width:794px; min-height:1123px;">
+          <iframe id="previewFrame" class="preview-frame" style="width:794px;height:1123px;"></iframe>
+        </div>
       </div>
     </div>
   </div>
