@@ -11,6 +11,31 @@ let state = {
 
 let previewDebounce = null;
 
+// ── Mobile view toggle (Edit ↔ Preview) ───────────────────────────────────
+function switchMobileView(view) {
+  const formCol = document.getElementById('formCol');
+  const previewCol = document.getElementById('previewCol');
+  const editBtn = document.getElementById('mobileEditBtn');
+  const previewBtn = document.getElementById('mobilePreviewBtn');
+
+  if (view === 'preview') {
+    formCol.classList.add('mobile-hidden');
+    previewCol.classList.remove('mobile-hidden');
+    editBtn.classList.remove('active');
+    editBtn.classList.add('text-gray-500');
+    previewBtn.classList.add('active');
+    previewBtn.classList.remove('text-gray-500');
+    refreshPreview();
+  } else {
+    previewCol.classList.add('mobile-hidden');
+    formCol.classList.remove('mobile-hidden');
+    previewBtn.classList.remove('active');
+    previewBtn.classList.add('text-gray-500');
+    editBtn.classList.add('active');
+    editBtn.classList.remove('text-gray-500');
+  }
+}
+
 // ── Tab switching ──────────────────────────────────────────────────────────
 function switchTab(name) {
   document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));

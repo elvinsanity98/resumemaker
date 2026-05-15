@@ -11,80 +11,113 @@
   <style>
     html, body { height: 100%; }
     .preview-frame { border: none; width: 100%; height: 100%; }
-    .sidebar { height: calc(100vh - 64px); overflow-y: auto; }
-    .preview-pane { height: calc(100vh - 64px); overflow: hidden; }
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 99px; }
     .tab-btn.active { background: white; box-shadow: 0 1px 3px rgba(0,0,0,.08); color: #4338ca; }
     .ats-ring { transition: stroke-dashoffset 0.6s ease; }
-    .chip { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-xs text-gray-600; }
     .skill-tag { display:inline-flex; align-items:center; gap:4px; background:#eef2ff; color:#4338ca;
                  padding:2px 10px; border-radius:99px; font-size:12px; font-weight:500; margin:2px; }
     .skill-tag button { background:none;border:none;cursor:pointer;color:#818cf8;font-size:14px;
                         line-height:1;padding:0 2px; }
     .skill-tag button:hover { color:#dc2626; }
+
+    /* Desktop layout */
+    @media (min-width: 1024px) {
+      .main-layout { height: calc(100vh - 64px); }
+      .form-col { width: 480px; min-width: 380px; height: 100%; overflow-y: auto; }
+      .preview-col { height: 100%; overflow: hidden; }
+      .mobile-view-toggle { display: none; }
+      .form-col, .preview-col { display: flex !important; }
+    }
+
+    /* Mobile layout */
+    @media (max-width: 1023px) {
+      .main-layout { height: calc(100vh - 112px); }
+      .form-col { width: 100%; overflow-y: auto; height: 100%; }
+      .preview-col { width: 100%; height: 100%; overflow: hidden; }
+      .preview-col.mobile-hidden { display: none !important; }
+      .form-col.mobile-hidden { display: none !important; }
+    }
   </style>
 </head>
 <body class="bg-gray-50 font-sans">
 
-<!-- Top Nav -->
-<nav class="h-16 bg-white border-b border-gray-100 flex items-center px-6 gap-4 z-10 shadow-sm">
-  <div class="flex items-center gap-2">
-    <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow">
-      <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+<!-- ═══ TOP NAV ═══ -->
+<nav class="bg-white border-b border-gray-100 shadow-sm z-10">
+  <div class="h-14 flex items-center px-3 sm:px-6 gap-2 sm:gap-4">
+
+    <!-- Logo -->
+    <div class="flex items-center gap-2 shrink-0">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow">
+        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+      </div>
+      <span class="text-base font-bold text-gray-900">Resume<span class="text-brand-600">Forge</span></span>
+    </div>
+
+    <div class="flex-1"></div>
+
+    <!-- ATS Score Ring -->
+    <div class="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-xl bg-gray-50 border border-gray-100">
+      <svg width="36" height="36" viewBox="0 0 44 44">
+        <circle cx="22" cy="22" r="18" fill="none" stroke="#e5e7eb" stroke-width="4"/>
+        <circle id="atsRing" cx="22" cy="22" r="18" fill="none" stroke="#6366f1" stroke-width="4"
+                stroke-linecap="round" stroke-dasharray="113.1" stroke-dashoffset="113.1"
+                transform="rotate(-90 22 22)" class="ats-ring"/>
+        <text id="atsScoreText" x="22" y="26" text-anchor="middle" font-size="11" font-weight="700" fill="#1e1b4b">0%</text>
       </svg>
+      <div class="hidden sm:block">
+        <div class="text-xs font-semibold text-gray-700">ATS Score</div>
+        <div id="atsLabel" class="text-xs text-gray-400">Fill in your info</div>
+      </div>
     </div>
-    <span class="text-lg font-bold text-gray-900">Resume<span class="text-brand-600">Forge</span></span>
+
+    <!-- Refresh (desktop only) -->
+    <button onclick="refreshPreview()" class="btn-ghost hidden lg:inline-flex">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      Refresh
+    </button>
+
+    <!-- Download -->
+    <button onclick="downloadPDF()" class="btn-primary text-xs sm:text-sm px-3 sm:px-5">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+      </svg>
+      <span class="hidden sm:inline">Download PDF</span>
+      <span class="sm:hidden">PDF</span>
+    </button>
   </div>
 
-  <div class="flex-1"></div>
-
-  <!-- ATS Score Ring -->
-  <div id="atsScoreWrap" class="flex items-center gap-3 px-4 py-2 rounded-xl bg-gray-50 border border-gray-100">
-    <svg width="44" height="44" viewBox="0 0 44 44">
-      <circle cx="22" cy="22" r="18" fill="none" stroke="#e5e7eb" stroke-width="4"/>
-      <circle id="atsRing" cx="22" cy="22" r="18" fill="none" stroke="#6366f1" stroke-width="4"
-              stroke-linecap="round" stroke-dasharray="113.1" stroke-dashoffset="113.1"
-              transform="rotate(-90 22 22)" class="ats-ring"/>
-      <text id="atsScoreText" x="22" y="26" text-anchor="middle" font-size="11" font-weight="700" fill="#1e1b4b">0%</text>
-    </svg>
-    <div>
-      <div class="text-xs font-semibold text-gray-700">ATS Score</div>
-      <div id="atsLabel" class="text-xs text-gray-400">Fill in your info</div>
-    </div>
+  <!-- Mobile: Edit / Preview toggle bar -->
+  <div class="mobile-view-toggle lg:hidden flex gap-1 bg-gray-100 p-1 mx-3 mb-2 rounded-xl text-xs font-medium">
+    <button id="mobileEditBtn" class="tab-btn active flex-1 py-1.5 rounded-lg text-center transition" onclick="switchMobileView('edit')">
+      Edit Form
+    </button>
+    <button id="mobilePreviewBtn" class="tab-btn flex-1 py-1.5 rounded-lg text-center text-gray-500 transition" onclick="switchMobileView('preview')">
+      Preview Resume
+    </button>
   </div>
-
-  <button onclick="refreshPreview()" class="btn-ghost">
-    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-    Refresh
-  </button>
-  <button onclick="downloadPDF()" class="btn-primary">
-    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-    </svg>
-    Download PDF
-  </button>
 </nav>
 
-<!-- Main Layout -->
-<div class="flex" style="height:calc(100vh - 64px)">
+<!-- ═══ MAIN LAYOUT ═══ -->
+<div class="main-layout flex flex-col lg:flex-row">
 
-  <!-- ===== LEFT: FORM SIDEBAR ===== -->
-  <div class="sidebar w-[480px] min-w-[380px] bg-gray-50 border-r border-gray-100 px-4 py-4">
+  <!-- ── LEFT: FORM ── -->
+  <div id="formCol" class="form-col flex flex-col bg-gray-50 border-r border-gray-100 px-3 sm:px-4 py-4">
 
     <!-- Section Tabs -->
-    <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-4 text-xs font-medium">
+    <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-4 text-xs font-medium shrink-0">
       <button class="tab-btn active flex-1 py-1.5 rounded-lg text-center transition" onclick="switchTab('basics')">Basics</button>
-      <button class="tab-btn flex-1 py-1.5 rounded-lg text-center text-gray-500 transition" onclick="switchTab('experience')">Experience</button>
-      <button class="tab-btn flex-1 py-1.5 rounded-lg text-center text-gray-500 transition" onclick="switchTab('education')">Education</button>
+      <button class="tab-btn flex-1 py-1.5 rounded-lg text-center text-gray-500 transition" onclick="switchTab('experience')">Work</button>
+      <button class="tab-btn flex-1 py-1.5 rounded-lg text-center text-gray-500 transition" onclick="switchTab('education')">Edu</button>
       <button class="tab-btn flex-1 py-1.5 rounded-lg text-center text-gray-500 transition" onclick="switchTab('skills')">Skills</button>
       <button class="tab-btn flex-1 py-1.5 rounded-lg text-center text-gray-500 transition" onclick="switchTab('extras')">Extras</button>
     </div>
 
     <!-- ── BASICS ── -->
-    <div id="tab-basics">
+    <div id="tab-basics" class="flex-1 overflow-y-auto">
       <div class="form-section">
         <div class="section-header">
           <span class="section-title">
@@ -97,11 +130,11 @@
             <label class="field-label">Full Name *</label>
             <input id="fullName" class="field-input" type="text" placeholder="e.g. Sarah Johnson" oninput="updateAts()"/>
           </div>
-          <div>
+          <div class="col-span-2 sm:col-span-1">
             <label class="field-label">Job Title / Target Role *</label>
             <input id="jobTitle" class="field-input" type="text" placeholder="e.g. Senior Software Engineer" oninput="updateAts()"/>
           </div>
-          <div>
+          <div class="col-span-2 sm:col-span-1">
             <label class="field-label">Email *</label>
             <input id="email" class="field-input" type="email" placeholder="sarah@email.com" oninput="updateAts()"/>
           </div>
@@ -140,7 +173,7 @@
     </div>
 
     <!-- ── EXPERIENCE ── -->
-    <div id="tab-experience" class="hidden">
+    <div id="tab-experience" class="hidden flex-1 overflow-y-auto">
       <div class="form-section">
         <div class="section-header">
           <span class="section-title">
@@ -158,7 +191,7 @@
     </div>
 
     <!-- ── EDUCATION ── -->
-    <div id="tab-education" class="hidden">
+    <div id="tab-education" class="hidden flex-1 overflow-y-auto">
       <div class="form-section">
         <div class="section-header">
           <span class="section-title">
@@ -175,7 +208,7 @@
     </div>
 
     <!-- ── SKILLS ── -->
-    <div id="tab-skills" class="hidden">
+    <div id="tab-skills" class="hidden flex-1 overflow-y-auto">
       <div class="form-section">
         <div class="section-header">
           <span class="section-title">
@@ -184,7 +217,6 @@
           </span>
         </div>
         <p class="text-xs text-gray-400 mb-3">ATS scans for exact keyword matches. Add skills that appear in job descriptions.</p>
-
         <div id="skillCategories"></div>
         <button class="add-btn w-full justify-center mt-2" onclick="addSkillCategory()">
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
@@ -194,8 +226,7 @@
     </div>
 
     <!-- ── EXTRAS ── -->
-    <div id="tab-extras" class="hidden">
-      <!-- Projects -->
+    <div id="tab-extras" class="hidden flex-1 overflow-y-auto">
       <div class="form-section">
         <div class="section-header">
           <span class="section-title">
@@ -209,8 +240,6 @@
           Add Project
         </button>
       </div>
-
-      <!-- Certifications -->
       <div class="form-section">
         <div class="section-header">
           <span class="section-title">
@@ -227,7 +256,7 @@
     </div>
 
     <!-- ATS Tips -->
-    <div class="bg-gradient-to-br from-brand-50 to-indigo-50 border border-brand-100 rounded-2xl p-4 mt-2">
+    <div class="bg-gradient-to-br from-brand-50 to-indigo-50 border border-brand-100 rounded-2xl p-4 mt-2 shrink-0">
       <div class="flex items-center gap-2 mb-2">
         <svg class="w-4 h-4 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         <span class="text-xs font-semibold text-brand-800">ATS Optimization Tips</span>
@@ -236,36 +265,54 @@
         <li class="flex gap-1.5"><span class="text-brand-400 mt-0.5">›</span> Use keywords from the job description verbatim</li>
         <li class="flex gap-1.5"><span class="text-brand-400 mt-0.5">›</span> Quantify every achievement with numbers/percentages</li>
         <li class="flex gap-1.5"><span class="text-brand-400 mt-0.5">›</span> Standard section names: "Work Experience", "Education", "Skills"</li>
-        <li class="flex gap-1.5"><span class="text-brand-400 mt-0.5">›</span> Spell out acronyms once: "Application Programming Interface (API)"</li>
         <li class="flex gap-1.5"><span class="text-brand-400 mt-0.5">›</span> No tables, columns, or graphics in the PDF</li>
       </ul>
     </div>
 
-  </div><!-- /sidebar -->
-
-  <!-- ===== RIGHT: PREVIEW ===== -->
-  <div class="preview-pane flex-1 bg-gray-200 flex flex-col">
-    <div class="flex items-center justify-between px-4 py-2 bg-gray-100 border-b border-gray-200">
-      <span class="text-xs font-medium text-gray-500">Live Preview — A4 Format</span>
-      <span class="text-xs text-gray-400">PDF output is identical</span>
+    <!-- Developer Credit -->
+    <div class="flex items-center justify-center gap-1.5 pt-3 pb-1 shrink-0">
+      <span class="text-xs text-gray-400">Built by</span>
+      <a href="https://www.linkedin.com/in/elvin-jhon-gimena-4b2665144/"
+         target="_blank" rel="noopener noreferrer"
+         class="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-800 transition-colors">
+        <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+        </svg>
+        Elvin Jhon Gimena
+      </a>
     </div>
-    <div class="flex-1 overflow-auto flex justify-center items-start py-6">
+
+  </div><!-- /form col -->
+
+  <!-- ── RIGHT: PREVIEW ── -->
+  <div id="previewCol" class="preview-col mobile-hidden flex-1 flex flex-col bg-gray-200">
+    <div class="flex items-center justify-between px-4 py-2 bg-gray-100 border-b border-gray-200 shrink-0">
+      <span class="text-xs font-medium text-gray-500">Live Preview — A4 Format</span>
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-gray-400 hidden sm:inline">PDF output is identical</span>
+        <button onclick="refreshPreview()" class="btn-ghost lg:hidden text-xs">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+    <div class="flex-1 overflow-auto flex justify-center items-start py-4 sm:py-6">
       <div class="bg-white shadow-2xl" style="width:794px; min-height:1123px;">
         <iframe id="previewFrame" class="preview-frame" style="width:794px;height:1123px;"></iframe>
       </div>
     </div>
   </div>
 
-</div>
+</div><!-- /main layout -->
 
-<!-- Hidden form for reliable binary PDF download (avoids fetch+blob issues) -->
+<!-- Hidden form for reliable binary PDF download -->
 <form id="pdfForm" action="/generate-pdf" method="POST" style="display:none">
   <input type="hidden" id="pdfJsonData" name="jsonData">
 </form>
 
 <!-- PDF loading overlay -->
 <div id="pdfOverlay" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-  <div class="bg-white rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl">
+  <div class="bg-white rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl mx-4">
     <div class="w-12 h-12 border-4 border-brand-100 border-t-brand-600 rounded-full animate-spin"></div>
     <div class="text-sm font-semibold text-gray-700">Generating your ATS-ready PDF…</div>
     <div class="text-xs text-gray-400">This takes a few seconds</div>
