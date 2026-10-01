@@ -11,6 +11,13 @@ let state = {
 
 let previewDebounce = null;
 
+// Date.now() alone repeats when items are added in the same millisecond (init does this)
+let lastId = 0;
+function newId() {
+  lastId = Math.max(Date.now(), lastId + 1);
+  return lastId;
+}
+
 // ── Mobile view toggle (Edit ↔ Preview) ───────────────────────────────────
 function switchMobileView(view) {
   const formCol = document.getElementById('formCol');
@@ -80,12 +87,16 @@ function v(id) {
 // ── Preview ────────────────────────────────────────────────────────────────
 function refreshPreview() {
   const data = collectData();
-  fetch('/preview', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-    .then(r => r.text())
+  // On a static host (GitHub Pages) there is no server — static.js renders it in the browser
+  const rendered = window.ResumeStatic
+    ? window.ResumeStatic.renderPreview(data)
+    : fetch('/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }).then(r => r.text());
+
+  rendered
     .then(html => {
       const frame = document.getElementById('previewFrame');
       const doc = frame.contentDocument || frame.contentWindow.document;
@@ -136,6 +147,13 @@ function downloadPDF() {
   const data = collectData();
   const overlay = document.getElementById('pdfOverlay');
   overlay.classList.remove('hidden');
+
+  if (window.ResumeStatic) {
+    window.ResumeStatic.downloadPDF(data)
+      .catch(() => alert('Could not generate the PDF. Check your connection and try again.'))
+      .then(() => overlay.classList.add('hidden'));
+    return;
+  }
 
   document.getElementById('pdfJsonData').value = JSON.stringify(data);
   document.getElementById('pdfForm').submit();
@@ -211,7 +229,7 @@ function updateAts() {
 
 // ── EXPERIENCE ────────────────────────────────────────────────────────────
 function addExperience() {
-  const id = Date.now();
+  const id = newId();
   state.experiences.push(id);
   const container = document.getElementById('experienceList');
   const el = document.createElement('div');
@@ -295,7 +313,7 @@ function readExperience(id) {
 
 // ── EDUCATION ─────────────────────────────────────────────────────────────
 function addEducation() {
-  const id = Date.now();
+  const id = newId();
   state.educations.push(id);
   const container = document.getElementById('educationList');
   const el = document.createElement('div');
@@ -365,7 +383,7 @@ function readEducation(id) {
 
 // ── SKILLS ────────────────────────────────────────────────────────────────
 function addSkillCategory() {
-  const id = Date.now();
+  const id = newId();
   state.skillCategories.push(id);
   const container = document.getElementById('skillCategories');
   const el = document.createElement('div');
@@ -437,7 +455,7 @@ function readSkillCategory(id) {
 
 // ── PROJECTS ──────────────────────────────────────────────────────────────
 function addProject() {
-  const id = Date.now();
+  const id = newId();
   state.projects.push(id);
   const container = document.getElementById('projectList');
   const el = document.createElement('div');
@@ -491,7 +509,7 @@ function readProject(id) {
 
 // ── CERTIFICATIONS ────────────────────────────────────────────────────────
 function addCert() {
-  const id = Date.now();
+  const id = newId();
   state.certifications.push(id);
   const container = document.getElementById('certList');
   const el = document.createElement('div');
