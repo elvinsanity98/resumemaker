@@ -149,31 +149,55 @@ document.addEventListener('change', (e) => {
 });
 
 // ── PDF download ───────────────────────────────────────────────────────────
-// Uses a native form POST instead of fetch+blob — the most reliable way to
-// download a binary file without JavaScript mangling the bytes in transit.
+let pdfUrl = null;
+
 function downloadPDF() {
   const data = collectData();
-  const overlay = document.getElementById('pdfOverlay');
-  overlay.classList.remove('hidden');
+  const filename = (data.fullName || 'Resume').replace(/[^a-z0-9]/gi, '_') + '_Resume.pdf';
+  showPdfOverlay('busy');
 
-  if (window.ResumeStatic) {
-    window.ResumeStatic.downloadPDF(data)
-      .catch(() => alert('Could not generate the PDF. Check your connection and try again.'))
-      .then(() => overlay.classList.add('hidden'));
-    return;
-  }
+  // Either host hands back a Blob: static.js builds it in the browser, the server renders it
+  const pdf = window.ResumeStatic
+    ? window.ResumeStatic.createPDF(data)
+    : fetch('/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }).then(r => {
+        if (!r.ok) throw new Error('PDF request failed: ' + r.status);
+        return r.blob();
+      });
 
-  // The response lands in a hidden iframe so a server error can't replace the page (and
-  // the resume typed into it). A download never fires load there; an error page does.
-  document.getElementById('pdfTarget').onload = () => {
-    overlay.classList.add('hidden');
-    alert('Could not generate the PDF. Please try again.');
-  };
-  document.getElementById('pdfJsonData').value = JSON.stringify(data);
-  document.getElementById('pdfForm').submit();
+  pdf
+    .then(blob => offerPdf(blob, filename))
+    .catch(() => {
+      closePdfOverlay();
+      alert('Could not generate the PDF. Check your connection and try again.');
+    });
+}
 
-  // Hide the overlay after a generous delay — the browser takes over from here
-  setTimeout(() => overlay.classList.add('hidden'), 5000);
+// A browser only lets a click start a download for a few seconds. When generating takes
+// longer the automatic save can be dropped without any message, so the finished file
+// stays on screen with links the user presses directly — those always work.
+function offerPdf(blob, filename) {
+  if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+  pdfUrl = URL.createObjectURL(blob);
+  const save = document.getElementById('pdfSaveLink');
+  save.href = pdfUrl;
+  save.download = filename;
+  document.getElementById('pdfOpenLink').href = pdfUrl;
+  showPdfOverlay('ready');
+  save.click();
+}
+
+function showPdfOverlay(mode) {
+  document.getElementById('pdfOverlay').classList.remove('hidden');
+  document.getElementById('pdfBusy').classList.toggle('hidden', mode !== 'busy');
+  document.getElementById('pdfReady').classList.toggle('hidden', mode !== 'ready');
+}
+
+function closePdfOverlay() {
+  document.getElementById('pdfOverlay').classList.add('hidden');
 }
 
 // ── ATS Score ─────────────────────────────────────────────────────────────

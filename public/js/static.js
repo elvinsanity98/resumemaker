@@ -194,7 +194,7 @@ window.ResumeStatic = (function () {
     };
   }
 
-  // pdfmake + its fonts are ~2 MB, so they are only fetched on the first download
+  // pdfmake + its fonts are ~2 MB, so they are not part of the initial page load
   let pdfMakePromise = null;
 
   function loadScript(src) {
@@ -216,12 +216,16 @@ window.ResumeStatic = (function () {
     return pdfMakePromise;
   }
 
-  function downloadPDF(data) {
+  // Resolves with the PDF as a Blob; app.js saves it
+  function createPDF(data) {
     return loadPdfMake().then(() => new Promise(resolve => {
-      const name = (data.fullName || 'Resume').replace(/[^a-z0-9]/gi, '_');
-      pdfMake.createPdf(buildDocument(data)).download(name + '_Resume.pdf', resolve);
+      pdfMake.createPdf(buildDocument(data)).getBlob(resolve);
     }));
   }
 
-  return { renderPreview, downloadPDF, buildDocument };
+  // Start fetching the library once the user begins typing, so the save that follows
+  // Download PDF happens while the browser still counts the click as its trigger
+  document.addEventListener('input', () => { loadPdfMake().catch(() => {}); }, { once: true });
+
+  return { renderPreview, createPDF, buildDocument };
 })();
