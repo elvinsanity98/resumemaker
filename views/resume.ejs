@@ -43,7 +43,7 @@
     }
 
     /* Summary */
-    .summary-text { font-size: 9.5pt; color: #374151; line-height: 1.6; }
+    .summary-text { font-size: 9.5pt; color: #374151; line-height: 1.6; white-space: pre-line; }
 
     /* Experience entry */
     .entry { margin-bottom: 10px; }
@@ -110,8 +110,21 @@
   </style>
 </head>
 <body>
-<% const d = data; %>
-<% const hasContent = d.fullName || d.summary || (d.experience && d.experience.length); %>
+<%
+  const d = data;
+  // The form starts with blank entries — only filled ones belong on the resume, and a
+  // section with none left is dropped entirely rather than printed as a bare heading.
+  // public/js/static.js builds the same lists for the static PDF — keep the two in sync.
+  const list = (items, keep) => Array.isArray(items) ? items.filter(i => i && keep(i)) : [];
+  const dateRange = (start, end) => [start, end].filter(Boolean).join(' – ');
+  const experience = list(d.experience, e => e.company || e.role);
+  const education = list(d.education, e => e.school || e.degree);
+  const skillCategories = list(d.skillCategories, c => Array.isArray(c.skills) && c.skills.length);
+  const projects = list(d.projects, p => p.name || p.description);
+  const certifications = list(d.certifications, c => c.name);
+  const hasContent = d.fullName || d.jobTitle || d.email || d.phone || d.location || d.linkedin || d.website || d.summary
+    || experience.length || education.length || skillCategories.length || projects.length || certifications.length;
+%>
 <% if (!hasContent) { %>
 <div class="empty-preview">
   <svg fill="none" viewBox="0 0 24 24" stroke="#e5e7eb" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -122,7 +135,7 @@
 
   <!-- ══ HEADER ══ -->
   <div class="header">
-    <div class="header-name"><%= d.fullName || '' %></div>
+    <% if (d.fullName) { %><div class="header-name"><%= d.fullName %></div><% } %>
     <% if (d.jobTitle) { %><div class="header-title"><%= d.jobTitle %></div><% } %>
     <div class="header-contacts">
       <% if (d.email) { %>
@@ -167,22 +180,19 @@
   <% } %>
 
   <!-- ══ EXPERIENCE ══ -->
-  <% if (d.experience && d.experience.length) { %>
+  <% if (experience.length) { %>
   <div class="section">
     <div class="section-title">Work Experience</div>
-    <% d.experience.forEach(exp => { %>
-    <% if (exp.company || exp.role) { %>
+    <% experience.forEach(exp => { %>
     <div class="entry">
       <div class="entry-header">
         <div>
           <div class="entry-org"><%= exp.company || '' %></div>
           <% if (exp.location) { %><div class="entry-location"><%= exp.location %></div><% } %>
         </div>
-        <div class="entry-dates">
-          <%= exp.startDate || '' %><% if (exp.startDate || exp.endDate) { %> – <% } %><%= exp.current ? 'Present' : (exp.endDate || '') %>
-        </div>
+        <div class="entry-dates"><%= dateRange(exp.startDate, exp.current ? 'Present' : exp.endDate) %></div>
       </div>
-      <div class="entry-role"><%= exp.role || '' %></div>
+      <% if (exp.role) { %><div class="entry-role"><%= exp.role %></div><% } %>
       <% if (exp.bullets) { %>
       <%
         const lines = exp.bullets.split('\n').map(l => l.replace(/^[-•▸*]\s*/, '').trim()).filter(l => l.length > 0);
@@ -196,17 +206,15 @@
       <% } %>
       <% } %>
     </div>
-    <% } %>
     <% }) %>
   </div>
   <% } %>
 
   <!-- ══ EDUCATION ══ -->
-  <% if (d.education && d.education.length) { %>
+  <% if (education.length) { %>
   <div class="section">
     <div class="section-title">Education</div>
-    <% d.education.forEach(edu => { %>
-    <% if (edu.school || edu.degree) { %>
+    <% education.forEach(edu => { %>
     <div class="entry">
       <div class="edu-header">
         <div>
@@ -217,39 +225,33 @@
           </div>
           <% if (edu.honors) { %><div class="edu-gpa"><%= edu.honors %></div><% } %>
         </div>
-        <div class="entry-dates">
-          <%= edu.startYear || '' %><% if (edu.startYear || edu.endYear) { %> – <% } %><%= edu.endYear || '' %>
-        </div>
+        <div class="entry-dates"><%= dateRange(edu.startYear, edu.endYear) %></div>
       </div>
     </div>
-    <% } %>
     <% }) %>
   </div>
   <% } %>
 
   <!-- ══ SKILLS ══ -->
-  <% if (d.skillCategories && d.skillCategories.length) { %>
+  <% if (skillCategories.length) { %>
   <div class="section">
     <div class="section-title">Skills</div>
     <div class="skills-grid">
-      <% d.skillCategories.forEach(cat => { %>
-      <% if (cat.name && cat.skills && cat.skills.length) { %>
+      <% skillCategories.forEach(cat => { %>
       <div class="skill-row">
-        <span class="skill-cat"><%= cat.name %>:</span>
+        <% if (cat.name) { %><span class="skill-cat"><%= cat.name %>:</span><% } %>
         <span class="skill-vals"><%= cat.skills.join(' · ') %></span>
       </div>
-      <% } %>
       <% }) %>
     </div>
   </div>
   <% } %>
 
   <!-- ══ PROJECTS ══ -->
-  <% if (d.projects && d.projects.length) { %>
+  <% if (projects.length) { %>
   <div class="section">
     <div class="section-title">Projects</div>
-    <% d.projects.forEach(proj => { %>
-    <% if (proj.name || proj.description) { %>
+    <% projects.forEach(proj => { %>
     <div class="entry">
       <div class="project-header">
         <span class="project-name"><%= proj.name || '' %></span>
@@ -264,22 +266,20 @@
       <ul class="bullets">
         <% plines.forEach(l => { %><li><%= l %></li><% }) %>
       </ul>
-      <% } else { %>
-      <p class="project-desc"><%= proj.description %></p>
+      <% } else if (plines.length) { %>
+      <p class="project-desc"><%= plines[0] %></p>
       <% } %>
       <% } %>
     </div>
-    <% } %>
     <% }) %>
   </div>
   <% } %>
 
   <!-- ══ CERTIFICATIONS ══ -->
-  <% if (d.certifications && d.certifications.length) { %>
+  <% if (certifications.length) { %>
   <div class="section">
     <div class="section-title">Certifications &amp; Awards</div>
-    <% d.certifications.forEach(cert => { %>
-    <% if (cert.name) { %>
+    <% certifications.forEach(cert => { %>
     <div class="cert-row">
       <div>
         <span class="cert-name"><%= cert.name %></span>
@@ -287,7 +287,6 @@
       </div>
       <% if (cert.date) { %><span class="cert-date"><%= cert.date %></span><% } %>
     </div>
-    <% } %>
     <% }) %>
   </div>
   <% } %>

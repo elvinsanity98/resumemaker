@@ -110,11 +110,11 @@
 
     <!-- Section Tabs -->
     <div class="flex gap-1 bg-gray-100 p-1 rounded-xl mb-4 text-xs font-medium shrink-0">
-      <button class="tab-btn active flex-1 py-1.5 rounded-lg text-center transition" onclick="switchTab('basics')">Basics</button>
-      <button class="tab-btn flex-1 py-1.5 rounded-lg text-center text-gray-500 transition" onclick="switchTab('experience')">Work</button>
-      <button class="tab-btn flex-1 py-1.5 rounded-lg text-center text-gray-500 transition" onclick="switchTab('education')">Edu</button>
-      <button class="tab-btn flex-1 py-1.5 rounded-lg text-center text-gray-500 transition" onclick="switchTab('skills')">Skills</button>
-      <button class="tab-btn flex-1 py-1.5 rounded-lg text-center text-gray-500 transition" onclick="switchTab('extras')">Extras</button>
+      <button data-tab="basics" class="tab-btn active flex-1 py-1.5 rounded-lg text-center transition" onclick="switchTab('basics')">Basics</button>
+      <button data-tab="experience" class="tab-btn flex-1 py-1.5 rounded-lg text-center text-gray-500 transition" onclick="switchTab('experience')">Work</button>
+      <button data-tab="education" class="tab-btn flex-1 py-1.5 rounded-lg text-center text-gray-500 transition" onclick="switchTab('education')">Edu</button>
+      <button data-tab="skills" class="tab-btn flex-1 py-1.5 rounded-lg text-center text-gray-500 transition" onclick="switchTab('skills')">Skills</button>
+      <button data-tab="extras" class="tab-btn flex-1 py-1.5 rounded-lg text-center text-gray-500 transition" onclick="switchTab('extras')">Extras</button>
     </div>
 
     <!-- ── BASICS ── -->
@@ -309,9 +309,10 @@
 </div><!-- /main layout -->
 
 <!-- Hidden form for reliable binary PDF download -->
-<form id="pdfForm" action="/generate-pdf" method="POST" style="display:none">
+<form id="pdfForm" action="/generate-pdf" method="POST" target="pdfTarget" style="display:none">
   <input type="hidden" id="pdfJsonData" name="jsonData">
 </form>
+<iframe id="pdfTarget" name="pdfTarget" style="display:none"></iframe>
 
 <!-- PDF loading overlay -->
 <div id="pdfOverlay" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">

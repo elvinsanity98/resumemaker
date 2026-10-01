@@ -47,17 +47,12 @@ function switchMobileView(view) {
 function switchTab(name) {
   document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
   document.getElementById('tab-' + name).classList.remove('hidden');
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.classList.remove('active');
-    btn.classList.add('text-gray-500');
+  // Only the section tabs — the mobile Edit/Preview toggle shares the .tab-btn style
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+    const isActive = btn.dataset.tab === name;
+    btn.classList.toggle('active', isActive);
+    btn.classList.toggle('text-gray-500', !isActive);
   });
-  const tabs = ['basics', 'experience', 'education', 'skills', 'extras'];
-  const idx = tabs.indexOf(name);
-  const btns = document.querySelectorAll('.tab-btn');
-  if (btns[idx]) {
-    btns[idx].classList.add('active');
-    btns[idx].classList.remove('text-gray-500');
-  }
 }
 
 // ── Collect form data ──────────────────────────────────────────────────────
@@ -85,8 +80,11 @@ function v(id) {
 }
 
 // ── Preview ────────────────────────────────────────────────────────────────
+let previewSeq = 0;
+
 function refreshPreview() {
   const data = collectData();
+  const seq = ++previewSeq;
   // On a static host (GitHub Pages) there is no server — static.js renders it in the browser
   const rendered = window.ResumeStatic
     ? window.ResumeStatic.renderPreview(data)
@@ -98,10 +96,14 @@ function refreshPreview() {
 
   rendered
     .then(html => {
+      if (seq !== previewSeq) return; // a newer preview was requested while this one loaded
       const frame = document.getElementById('previewFrame');
       const doc = frame.contentDocument || frame.contentWindow.document;
       doc.open(); doc.write(html); doc.close();
       fitPreview();
+      // The web font arrives after the first layout and changes the content height
+      frame.contentWindow.addEventListener('load', fitPreview);
+      if (doc.fonts) doc.fonts.ready.then(fitPreview);
     });
 }
 
@@ -110,15 +112,21 @@ function fitPreview() {
   const scroll = document.getElementById('previewScroll');
   const sizer = document.getElementById('previewSizer');
   const page = document.getElementById('previewPage');
-  if (!scroll || !sizer || !page) return;
+  const frame = document.getElementById('previewFrame');
+  if (!scroll || !sizer || !page || !frame) return;
   const PAGE_W = 794, PAGE_H = 1123;
   const available = scroll.clientWidth - 16; // account for px-2 padding
   if (available <= 0) return; // column is hidden (display:none) — recompute when shown
+  // Grow the page with the resume: a fixed-height frame would scroll on its own and
+  // jump back to the top on every refresh once the content passes one page
+  const body = frame.contentDocument && frame.contentDocument.body;
+  const pageH = Math.max(PAGE_H, body ? body.offsetHeight : 0);
+  frame.style.height = pageH + 'px';
   const scale = Math.min(1, available / PAGE_W);
   page.style.transform = `scale(${scale})`;
   // The sizer reserves the *scaled* footprint so layout/scroll stay correct
   sizer.style.width = (PAGE_W * scale) + 'px';
-  sizer.style.height = (PAGE_H * scale) + 'px';
+  sizer.style.height = (pageH * scale) + 'px';
 }
 window.addEventListener('resize', fitPreview);
 
@@ -155,6 +163,12 @@ function downloadPDF() {
     return;
   }
 
+  // The response lands in a hidden iframe so a server error can't replace the page (and
+  // the resume typed into it). A download never fires load there; an error page does.
+  document.getElementById('pdfTarget').onload = () => {
+    overlay.classList.add('hidden');
+    alert('Could not generate the PDF. Please try again.');
+  };
   document.getElementById('pdfJsonData').value = JSON.stringify(data);
   document.getElementById('pdfForm').submit();
 
@@ -165,6 +179,12 @@ function downloadPDF() {
 // ── ATS Score ─────────────────────────────────────────────────────────────
 function updateAts() {
   let score = 0;
+  // Blank entries (the form starts with a few) must not count towards the score
+  const exps  = state.experiences.filter(id => v('exp-company-' + id) || v('exp-role-' + id));
+  const edus  = state.educations.filter(id => v('edu-school-' + id) || v('edu-degree-' + id));
+  const projs = state.projects.filter(id => v('proj-name-' + id) || v('proj-desc-' + id));
+  const certs = state.certifications.filter(id => v('cert-name-' + id));
+  const skillCount = state.skillCategories.reduce((t, id) => t + getSkills(id).length, 0);
   const checks = [
     () => !!v('fullName'),
     () => !!v('jobTitle'),
@@ -173,24 +193,24 @@ function updateAts() {
     () => !!v('location'),
     () => { const s = v('summary'); return s.length > 100; },
     () => { const s = v('summary'); return s.split(/\s+/).length >= 40; },
-    () => state.experiences.length >= 1,
-    () => state.experiences.length >= 2,
-    () => state.experiences.some(id => {
+    () => exps.length >= 1,
+    () => exps.length >= 2,
+    () => exps.some(id => {
       const b = v('exp-bullets-' + id); return b && b.split('\n').filter(l => l.trim()).length >= 3;
     }),
-    () => state.experiences.some(id => {
+    () => exps.some(id => {
       const b = v('exp-bullets-' + id);
       return /\d+%|\d+x|\$[\d,]+|\d+ (engineers|people|users|customers|million|billion)/.test(b);
     }),
-    () => state.educations.length >= 1,
-    () => state.skillCategories.length >= 1,
-    () => state.skillCategories.reduce((t, id) => t + getSkills(id).length, 0) >= 5,
-    () => state.skillCategories.reduce((t, id) => t + getSkills(id).length, 0) >= 10,
+    () => edus.length >= 1,
+    () => skillCount >= 1,
+    () => skillCount >= 5,
+    () => skillCount >= 10,
     () => !!v('linkedin'),
     () => !!v('website'),
-    () => state.projects.length >= 1,
-    () => state.certifications.length >= 1,
-    () => state.experiences.some(id => v('exp-company-' + id).length > 0),
+    () => projs.length >= 1,
+    () => certs.length >= 1,
+    () => exps.some(id => v('exp-company-' + id).length > 0),
   ];
 
   checks.forEach(fn => { try { if (fn()) score++; } catch (_) {} });
@@ -204,7 +224,9 @@ function updateAts() {
   ring.style.strokeDashoffset = offset;
   text.textContent = pct + '%';
 
-  if (pct < 40) {
+  if (pct === 0) {
+    label.textContent = 'Fill in your info';
+  } else if (pct < 40) {
     ring.setAttribute('stroke', '#f87171');
     label.textContent = 'Needs work';
   } else if (pct < 65) {
@@ -227,6 +249,13 @@ function updateAts() {
   if (wc) wc.textContent = words + ' words' + (words < 40 ? ' (aim for 40–80)' : '');
 }
 
+// Relabel "Experience #1…#n" after a removal so the numbers stay sequential and unique
+function renumber(listId, label) {
+  document.querySelectorAll('#' + listId + ' .item-number').forEach((el, i) => {
+    el.textContent = label + ' #' + (i + 1);
+  });
+}
+
 // ── EXPERIENCE ────────────────────────────────────────────────────────────
 function addExperience() {
   const id = newId();
@@ -237,7 +266,7 @@ function addExperience() {
   el.className = 'mb-4 p-4 bg-gray-50 rounded-xl border border-gray-100';
   el.innerHTML = `
     <div class="flex justify-between items-center mb-3">
-      <span class="text-xs font-semibold text-gray-600">Experience #${state.experiences.length}</span>
+      <span class="item-number text-xs font-semibold text-gray-600">Experience #${state.experiences.length}</span>
       <button class="btn-danger" onclick="removeExperience(${id})">
         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
         Remove
@@ -295,6 +324,7 @@ function toggleCurrent(id) {
 function removeExperience(id) {
   state.experiences = state.experiences.filter(e => e !== id);
   document.getElementById('exp-' + id)?.remove();
+  renumber('experienceList', 'Experience');
   schedulePreview();
   updateAts();
 }
@@ -321,7 +351,7 @@ function addEducation() {
   el.className = 'mb-4 p-4 bg-gray-50 rounded-xl border border-gray-100';
   el.innerHTML = `
     <div class="flex justify-between items-center mb-3">
-      <span class="text-xs font-semibold text-gray-600">Education #${state.educations.length}</span>
+      <span class="item-number text-xs font-semibold text-gray-600">Education #${state.educations.length}</span>
       <button class="btn-danger" onclick="removeEducation(${id})">
         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
         Remove
@@ -365,6 +395,7 @@ function addEducation() {
 function removeEducation(id) {
   state.educations = state.educations.filter(e => e !== id);
   document.getElementById('edu-' + id)?.remove();
+  renumber('educationList', 'Education');
   schedulePreview();
   updateAts();
 }
@@ -404,26 +435,41 @@ function addSkillCategory() {
     </div>`;
   container.appendChild(el);
 
-  document.getElementById('skill-input-' + id).addEventListener('keydown', (e) => {
+  const skillInput = document.getElementById('skill-input-' + id);
+  skillInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
       addSkillTag(id);
     }
   });
+  // Mobile keyboards don't report the comma key, and a paste skips keydown entirely
+  skillInput.addEventListener('input', () => {
+    if (skillInput.value.includes(',')) addSkillTag(id);
+  });
+  // A skill typed but never confirmed would silently be left off the resume
+  skillInput.addEventListener('blur', () => addSkillTag(id));
   schedulePreview();
 }
 
 function addSkillTag(id) {
   const input = document.getElementById('skill-input-' + id);
-  const val = input.value.replace(/,/g, '').trim();
-  if (!val) return;
-  const container = document.getElementById('skill-tags-' + id);
-  const tag = document.createElement('span');
-  tag.className = 'skill-tag';
-  tag.dataset.value = val;
-  tag.innerHTML = `${val}<button type="button" onclick="removeSkillTag(this, ${id})">×</button>`;
-  container.appendChild(tag);
+  // "Python, Java, Go" is three skills, not one
+  const skills = input.value.split(',').map(s => s.trim()).filter(Boolean);
   input.value = '';
+  if (!skills.length) return;
+  const container = document.getElementById('skill-tags-' + id);
+  skills.forEach(val => {
+    const tag = document.createElement('span');
+    tag.className = 'skill-tag';
+    tag.dataset.value = val;
+    tag.textContent = val; // not innerHTML: a skill like "C <3" must show as typed
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.textContent = '×';
+    remove.onclick = () => removeSkillTag(remove, id);
+    tag.appendChild(remove);
+    container.appendChild(tag);
+  });
   schedulePreview();
   updateAts();
 }
@@ -463,7 +509,7 @@ function addProject() {
   el.className = 'mb-4 p-4 bg-gray-50 rounded-xl border border-gray-100';
   el.innerHTML = `
     <div class="flex justify-between items-center mb-3">
-      <span class="text-xs font-semibold text-gray-600">Project #${state.projects.length}</span>
+      <span class="item-number text-xs font-semibold text-gray-600">Project #${state.projects.length}</span>
       <button class="btn-danger" onclick="removeProject(${id})">
         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
         Remove
@@ -495,7 +541,9 @@ function addProject() {
 function removeProject(id) {
   state.projects = state.projects.filter(p => p !== id);
   document.getElementById('proj-' + id)?.remove();
+  renumber('projectList', 'Project');
   schedulePreview();
+  updateAts();
 }
 
 function readProject(id) {
@@ -517,7 +565,7 @@ function addCert() {
   el.className = 'mb-3 p-3 bg-gray-50 rounded-xl border border-gray-100';
   el.innerHTML = `
     <div class="flex justify-between items-center mb-2">
-      <span class="text-xs font-semibold text-gray-600">Certification #${state.certifications.length}</span>
+      <span class="item-number text-xs font-semibold text-gray-600">Certification #${state.certifications.length}</span>
       <button class="btn-danger" onclick="removeCert(${id})">
         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
         Remove
@@ -544,7 +592,9 @@ function addCert() {
 function removeCert(id) {
   state.certifications = state.certifications.filter(c => c !== id);
   document.getElementById('cert-' + id)?.remove();
+  renumber('certList', 'Certification');
   schedulePreview();
+  updateAts();
 }
 
 function readCert(id) {

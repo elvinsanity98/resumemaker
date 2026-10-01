@@ -70,7 +70,12 @@ window.ResumeStatic = (function () {
   }
 
   function dateRange(start, end) {
-    return (start || '') + (start || end ? ' – ' : '') + (end || '');
+    return [start, end].filter(Boolean).join(' – ');
+  }
+
+  // Only filled entries belong on the resume (the form starts with blank ones)
+  function list(items, keep) {
+    return Array.isArray(items) ? items.filter(i => i && keep(i)) : [];
   }
 
   function experienceEntry(exp) {
@@ -102,6 +107,7 @@ window.ResumeStatic = (function () {
   }
 
   function skillRow(cat) {
+    if (!cat.name) return { text: cat.skills.join(' · '), margin: [0, 0, 0, 3.75] };
     return {
       columns: [
         {
@@ -126,7 +132,8 @@ window.ResumeStatic = (function () {
     if (proj.tech) stack.push({ text: proj.tech, fontSize: 8.5, bold: true, color: ACCENT, margin: [0, 0, 0, 2.25] });
     if (proj.description) {
       const lines = bulletLines(proj.description);
-      stack.push(lines.length > 1 ? bulletList(lines) : { text: proj.description });
+      if (lines.length > 1) stack.push(bulletList(lines));
+      else if (lines.length) stack.push({ text: lines[0] });
     }
     return { stack, margin: [0, 0, 0, 7.5] };
   }
@@ -142,14 +149,21 @@ window.ResumeStatic = (function () {
 
   function buildDocument(d) {
     const body = [];
-    const hasContent = d.fullName || d.summary || (d.experience && d.experience.length);
+    // Same filtering as views/resume.ejs — a section with nothing in it is left out
+    const experience = list(d.experience, e => e.company || e.role);
+    const education = list(d.education, e => e.school || e.degree);
+    const skillCategories = list(d.skillCategories, c => Array.isArray(c.skills) && c.skills.length);
+    const projects = list(d.projects, p => p.name || p.description);
+    const certifications = list(d.certifications, c => c.name);
+    const contacts = [d.email, d.phone, d.location, d.linkedin, d.website].filter(Boolean);
+    const hasContent = d.fullName || d.jobTitle || contacts.length || d.summary
+      || experience.length || education.length || skillCategories.length || projects.length || certifications.length;
 
     if (!hasContent) {
       body.push({ text: 'Start filling in your details to see a live preview', color: '#d1d5db', alignment: 'center', margin: [0, 150, 0, 0] });
     } else {
       if (d.fullName) body.push({ text: d.fullName, fontSize: 22, bold: true, color: INK, lineHeight: 1 });
       if (d.jobTitle) body.push({ text: d.jobTitle, fontSize: 11, bold: true, color: ACCENT, margin: [0, 1.5, 0, 0] });
-      const contacts = [d.email, d.phone, d.location, d.linkedin, d.website].filter(Boolean);
       if (contacts.length) {
         const line = [];
         contacts.forEach((c, i) => {
@@ -163,21 +177,11 @@ window.ResumeStatic = (function () {
       if (d.summary) {
         body.push(section('Professional Summary', [{ text: d.summary, lineHeight: lh(1.6) }]));
       }
-      if (d.experience && d.experience.length) {
-        body.push(section('Work Experience', d.experience.filter(e => e.company || e.role).map(experienceEntry)));
-      }
-      if (d.education && d.education.length) {
-        body.push(section('Education', d.education.filter(e => e.school || e.degree).map(educationEntry)));
-      }
-      if (d.skillCategories && d.skillCategories.length) {
-        body.push(section('Skills', d.skillCategories.filter(c => c.name && c.skills && c.skills.length).map(skillRow)));
-      }
-      if (d.projects && d.projects.length) {
-        body.push(section('Projects', d.projects.filter(p => p.name || p.description).map(projectEntry)));
-      }
-      if (d.certifications && d.certifications.length) {
-        body.push(section('Certifications & Awards', d.certifications.filter(c => c.name).map(certRow)));
-      }
+      if (experience.length) body.push(section('Work Experience', experience.map(experienceEntry)));
+      if (education.length) body.push(section('Education', education.map(educationEntry)));
+      if (skillCategories.length) body.push(section('Skills', skillCategories.map(skillRow)));
+      if (projects.length) body.push(section('Projects', projects.map(projectEntry)));
+      if (certifications.length) body.push(section('Certifications & Awards', certifications.map(certRow)));
     }
 
     return {
