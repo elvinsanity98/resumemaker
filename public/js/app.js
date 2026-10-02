@@ -149,12 +149,11 @@ document.addEventListener('change', (e) => {
 });
 
 // ── PDF download ───────────────────────────────────────────────────────────
-let pdfUrl = null;
-
 function downloadPDF() {
   const data = collectData();
   const filename = (data.fullName || 'Resume').replace(/[^a-z0-9]/gi, '_') + '_Resume.pdf';
-  showPdfOverlay('busy');
+  const overlay = document.getElementById('pdfOverlay');
+  overlay.classList.remove('hidden');
 
   // Either host hands back a Blob: static.js builds it in the browser, the server renders it
   const pdf = window.ResumeStatic
@@ -169,35 +168,20 @@ function downloadPDF() {
       });
 
   pdf
-    .then(blob => offerPdf(blob, filename))
-    .catch(() => {
-      closePdfOverlay();
-      alert('Could not generate the PDF. Check your connection and try again.');
-    });
+    .then(blob => savePdf(blob, filename))
+    .catch(() => alert('Could not generate the PDF. Check your connection and try again.'))
+    .then(() => overlay.classList.add('hidden'));
 }
 
-// A browser only lets a click start a download for a few seconds. When generating takes
-// longer the automatic save can be dropped without any message, so the finished file
-// stays on screen with links the user presses directly — those always work.
-function offerPdf(blob, filename) {
-  if (pdfUrl) URL.revokeObjectURL(pdfUrl);
-  pdfUrl = URL.createObjectURL(blob);
-  const save = document.getElementById('pdfSaveLink');
-  save.href = pdfUrl;
-  save.download = filename;
-  document.getElementById('pdfOpenLink').href = pdfUrl;
-  showPdfOverlay('ready');
-  save.click();
-}
-
-function showPdfOverlay(mode) {
-  document.getElementById('pdfOverlay').classList.remove('hidden');
-  document.getElementById('pdfBusy').classList.toggle('hidden', mode !== 'busy');
-  document.getElementById('pdfReady').classList.toggle('hidden', mode !== 'ready');
-}
-
-function closePdfOverlay() {
-  document.getElementById('pdfOverlay').classList.add('hidden');
+function savePdf(blob, filename) {
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  // The browser reads the blob after the click returns, so it can't be released right away
+  setTimeout(() => URL.revokeObjectURL(link.href), 40000);
 }
 
 // ── ATS Score ─────────────────────────────────────────────────────────────

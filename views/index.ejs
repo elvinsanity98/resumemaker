@@ -308,21 +308,12 @@
 
 </div><!-- /main layout -->
 
-<!-- PDF overlay: spinner while generating, then the finished file -->
+<!-- PDF loading overlay -->
 <div id="pdfOverlay" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-  <div class="bg-white rounded-2xl p-8 shadow-2xl mx-4">
-    <div id="pdfBusy" class="flex flex-col items-center gap-4">
-      <div class="w-12 h-12 border-4 border-brand-100 border-t-brand-600 rounded-full animate-spin"></div>
-      <div class="text-sm font-semibold text-gray-700">Generating your ATS-ready PDF…</div>
-      <div class="text-xs text-gray-400">This takes a few seconds</div>
-    </div>
-    <div id="pdfReady" class="hidden flex flex-col items-center gap-3 text-center">
-      <div class="text-sm font-semibold text-gray-700">Your PDF is ready</div>
-      <div class="text-xs text-gray-400">If the download didn't start on its own, save or open it here.</div>
-      <a id="pdfSaveLink" class="btn-primary w-full justify-center mt-1">Save PDF</a>
-      <a id="pdfOpenLink" class="btn-ghost" target="_blank" rel="noopener">Open in a new tab (to view or print)</a>
-      <button class="btn-ghost" onclick="closePdfOverlay()">Close</button>
-    </div>
+  <div class="bg-white rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl mx-4">
+    <div class="w-12 h-12 border-4 border-brand-100 border-t-brand-600 rounded-full animate-spin"></div>
+    <div class="text-sm font-semibold text-gray-700">Generating your ATS-ready PDF…</div>
+    <div class="text-xs text-gray-400">This takes a few seconds</div>
   </div>
 </div>
 
